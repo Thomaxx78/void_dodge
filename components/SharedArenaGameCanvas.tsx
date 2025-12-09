@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { GameState, Entity, Particle } from '../types';
-import { MultiplayerPlayer, PlayerMovedEvent, PlayerDiedEvent, EnemySpawnedEvent, EnemyMovedEvent } from '../types/multiplayer';
+import { MultiplayerPlayer, PlayerMovedEvent, PlayerDiedEvent, EnemySpawnedEvent } from '../types/multiplayer';
 import { multiplayerService } from '../services/multiplayerService';
 
 interface SharedArenaGameCanvasProps {
@@ -111,33 +111,15 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
     };
 
     const handleEnemySpawned = (data: EnemySpawnedEvent) => {
-      // Deprecated - not used anymore, enemies are synced in batch
-    };
-
-    const handleEnemiesUpdated = (data: EnemyMovedEvent) => {
+      // Only non-hosts receive spawn events and add enemies
       if (!isHost) {
-        // Update existing enemies and add new ones
-        const receivedIds = new Set(data.enemies.map(e => e.id));
-
-        // Remove enemies that are no longer in the update
-        enemiesRef.current = enemiesRef.current.filter(e => receivedIds.has(e.id));
-
-        // Update positions of existing enemies or add new ones
-        data.enemies.forEach(receivedEnemy => {
-          const existing = enemiesRef.current.find(e => e.id === receivedEnemy.id);
-          if (existing) {
-            // Update existing enemy (position and velocity for interpolation)
-            existing.pos = receivedEnemy.pos;
-            existing.vel = receivedEnemy.vel;
-            existing.size = receivedEnemy.size;
-          } else {
-            // Add new enemy
-            enemiesRef.current.push({
-              ...receivedEnemy,
-              color: '#ff0033',
-              opacity: 1
-            });
-          }
+        enemiesRef.current.push({
+          id: data.enemy.id,
+          pos: { ...data.enemy.pos },
+          vel: { ...data.enemy.vel },
+          size: data.enemy.size,
+          color: '#ff0033',
+          opacity: 1
         });
       }
     };
@@ -145,13 +127,11 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
     multiplayerService.onPlayerMoved(handlePlayerMoved);
     multiplayerService.onPlayerDied(handlePlayerDied);
     multiplayerService.onEnemySpawned(handleEnemySpawned);
-    multiplayerService.onEnemiesUpdated(handleEnemiesUpdated);
 
     return () => {
       multiplayerService.offPlayerMoved(handlePlayerMoved);
       multiplayerService.offPlayerDied(handlePlayerDied);
       multiplayerService.offEnemySpawned(handleEnemySpawned);
-      multiplayerService.offEnemiesUpdated(handleEnemiesUpdated);
     };
   }, [isHost, currentPlayer]);
 
@@ -276,11 +256,18 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
 
           enemiesRef.current.push(enemy);
 
-          // Don't broadcast individual spawns - we'll send all enemies in batch
+          // Broadcast ONLY the spawn event with initial position + velocity
+          // Clients will calculate movement themselves
+          multiplayerService.spawnEnemy({
+            id: enemy.id,
+            pos: enemy.pos,
+            vel: enemy.vel,
+            size: enemy.size
+          });
         }
       }
 
-      // Update enemies locally
+      // Update enemies locally (same for all clients)
       for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
         const enemy = enemiesRef.current[i];
         enemy.pos.x += enemy.vel.x;
@@ -297,17 +284,7 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
         }
       }
 
-      // Broadcast enemy positions every 10 frames (reduced from 2)
-      if (frameCountRef.current % 10 === 0) {
-        multiplayerService.updateEnemies(
-          enemiesRef.current.map(e => ({
-            id: e.id,
-            pos: e.pos,
-            vel: e.vel,
-            size: e.size
-          }))
-        );
-      }
+      // No need to broadcast positions anymore - all clients calculate the same trajectory!
     } else {
       // Non-host: interpolate enemy positions locally based on velocity
       for (let i = enemiesRef.current.length - 1; i >= 0; i--) {

@@ -120,6 +120,11 @@ class MultiplayerService {
     this.socket.emit('start-game', this.currentRoom.id);
   }
 
+  restartGame() {
+    if (!this.socket || !this.currentRoom) return;
+    this.socket.emit('restart-game', this.currentRoom.id);
+  }
+
   sendPlayerPosition(position: { x: number; y: number }) {
     if (!this.socket || !this.currentRoom) return;
     this.socket.emit('player-move', {
@@ -158,6 +163,10 @@ class MultiplayerService {
 
   onGameStarted(callback: (room: MultiplayerRoom) => void) {
     this.socket?.on('game-started', callback);
+  }
+
+  onGameRestarted(callback: (room: MultiplayerRoom) => void) {
+    this.socket?.on('game-restarted', callback);
   }
 
   onPlayerMoved(callback: (data: PlayerMovedEvent) => void) {
@@ -207,6 +216,10 @@ class MultiplayerService {
 
   offGameStarted(callback: (room: MultiplayerRoom) => void) {
     this.socket?.off('game-started', callback);
+  }
+
+  offGameRestarted(callback: (room: MultiplayerRoom) => void) {
+    this.socket?.off('game-restarted', callback);
   }
 
   offPlayerMoved(callback: (data: PlayerMovedEvent) => void) {

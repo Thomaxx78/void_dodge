@@ -11,6 +11,7 @@ interface MultiplayerLobbyProps {
 const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ room: initialRoom, onStartGame, onLeaveRoom }) => {
   const [room, setRoom] = useState<MultiplayerRoom>(initialRoom);
   const [error, setError] = useState<string>('');
+  const [copied, setCopied] = useState<boolean>(false);
   const currentPlayer = multiplayerService.getCurrentPlayer();
   const isHost = multiplayerService.isHost();
 
@@ -86,6 +87,16 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ room: initialRoom, 
     onLeaveRoom();
   };
 
+  const handleCopyRoomCode = async () => {
+    try {
+      await navigator.clipboard.writeText(room.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy room code:', err);
+    }
+  };
+
   const allPlayersReady = room.players.every(p => p.ready);
   const canStart = isHost && allPlayersReady && room.players.length >= 2 && room.gameMode !== null;
 
@@ -98,9 +109,19 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ room: initialRoom, 
             MULTIPLAYER LOBBY
           </h1>
           <div className="text-center space-y-2">
-            <p className="text-2xl text-white font-mono">
-              Room Code: <span className="text-cyan-400 font-bold">{room.id}</span>
-            </p>
+            <div className="flex items-center justify-center gap-3">
+              <p className="text-2xl text-white font-mono">
+                Room Code:
+              </p>
+              <button
+                onClick={handleCopyRoomCode}
+                className="text-2xl text-cyan-400 font-bold hover:text-cyan-300 transition-colors px-3 py-1 border border-cyan-500/50 hover:border-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20"
+                title="Click to copy"
+              >
+                {room.id}
+                {copied && <span className="ml-2 text-green-400 text-sm">✓ Copied!</span>}
+              </button>
+            </div>
             <p className="text-gray-400 text-sm uppercase tracking-widest">
               {room.players.length} / {room.maxPlayers} Players
             </p>

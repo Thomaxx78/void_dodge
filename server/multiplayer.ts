@@ -224,6 +224,38 @@ io.on('connection', (socket) => {
     console.log(`Game started in room ${roomId} with mode: ${room.gameMode}`);
   });
 
+  // Restart game (host only, after game finished)
+  socket.on('restart-game', (roomId: string) => {
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    // Only host can restart
+    if (socket.id !== room.hostId) {
+      socket.emit('error', { message: 'Only host can restart the game' });
+      return;
+    }
+
+    // Only allow restart if game is finished
+    if (room.state !== 'finished') {
+      socket.emit('error', { message: 'Game is not finished yet' });
+      return;
+    }
+
+    // Reset room state
+    room.state = 'waiting';
+    room.winner = null;
+    room.enemies = [];
+
+    // Reset all players to ready state
+    room.players.forEach(player => {
+      player.alive = true;
+      player.ready = player.id === room.hostId; // Host is auto-ready
+    });
+
+    io.to(roomId).emit('game-restarted', serializeRoom(room));
+    console.log(`Game restarted in room ${roomId}`);
+  });
+
   // Player position update
   socket.on('player-move', ({ roomId, position }: { roomId: string; position: { x: number; y: number } }) => {
     const room = rooms.get(roomId);

@@ -47,14 +47,23 @@ const App: React.FC = () => {
       setMultiplayerPlayers(data.room.players);
     };
 
+    const handleGameRestarted = (room: MultiplayerRoom) => {
+      setMultiplayerRoom(room);
+      setMultiplayerPlayers(room.players);
+      setGameState(GameState.MENU);
+      setAppMode('multiplayer-lobby');
+    };
+
     multiplayerService.onRoomUpdated(handleRoomUpdated);
     multiplayerService.onPlayerJoined(handlePlayerJoined);
     multiplayerService.onPlayerLeft(handlePlayerLeft);
+    multiplayerService.onGameRestarted(handleGameRestarted);
 
     return () => {
       multiplayerService.offRoomUpdated(handleRoomUpdated);
       multiplayerService.offPlayerJoined(handlePlayerJoined);
       multiplayerService.offPlayerLeft(handlePlayerLeft);
+      multiplayerService.offGameRestarted(handleGameRestarted);
       multiplayerService.disconnect();
     };
   }, []);

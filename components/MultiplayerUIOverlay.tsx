@@ -38,7 +38,14 @@ const MultiplayerUIOverlay: React.FC<MultiplayerUIOverlayProps> = ({
     onLeaveGame();
   };
 
+  const handlePlayAgain = () => {
+    if (multiplayerService.isHost()) {
+      multiplayerService.restartGame();
+    }
+  };
+
   const aliveCount = players.filter(p => p.alive).length;
+  const isHost = multiplayerService.isHost();
 
   return (
     <>
@@ -110,12 +117,37 @@ const MultiplayerUIOverlay: React.FC<MultiplayerUIOverlayProps> = ({
               </p>
             )}
 
-            <button
-              onClick={handleLeave}
-              className="w-full px-8 py-4 font-bold uppercase tracking-widest text-lg border-2 border-cyan-400 text-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 transition-all duration-300"
-            >
-              Back to Menu
-            </button>
+            <div className="flex gap-4">
+              {isHost ? (
+                <>
+                  <button
+                    onClick={handlePlayAgain}
+                    className="flex-1 px-8 py-4 font-bold uppercase tracking-widest text-lg border-2 border-green-500 text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-all duration-300"
+                  >
+                    Play Again
+                  </button>
+                  <button
+                    onClick={handleLeave}
+                    className="flex-1 px-8 py-4 font-bold uppercase tracking-widest text-lg border-2 border-red-500 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all duration-300"
+                  >
+                    Leave Room
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1 px-8 py-4 text-center border-2 border-gray-600 text-gray-400 bg-gray-600/10">
+                    <p className="text-sm mb-1">Waiting for host...</p>
+                    <p className="text-xs text-gray-500">Host can restart the game</p>
+                  </div>
+                  <button
+                    onClick={handleLeave}
+                    className="flex-1 px-8 py-4 font-bold uppercase tracking-widest text-lg border-2 border-red-500 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all duration-300"
+                  >
+                    Leave Room
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
