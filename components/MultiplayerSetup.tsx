@@ -70,10 +70,10 @@ const MultiplayerSetup: React.FC<MultiplayerSetupProps> = ({ onRoomCreated, onRo
 
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black/95">
-      <div className="max-w-2xl w-full mx-4 p-8 border-2 border-cyan-500/50 bg-black/90 shadow-[0_0_50px_rgba(6,182,212,0.3)]">
+      <div className="max-w-md sm:max-w-lg md:max-w-2xl w-full mx-4 p-6 sm:p-8 border-2 border-cyan-500/50 bg-black/90 shadow-[0_0_50px_rgba(6,182,212,0.3)]">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-5xl text-cyan-400 font-black tracking-tighter text-center neon-text mb-4">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-4xl sm:text-5xl text-cyan-400 font-black tracking-tighter text-center neon-text mb-4">
             MULTIPLAYER
           </h1>
           <p className="text-gray-400 text-center text-sm uppercase tracking-widest">
@@ -83,13 +83,13 @@ const MultiplayerSetup: React.FC<MultiplayerSetupProps> = ({ onRoomCreated, onRo
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-3 border border-red-500/50 bg-red-500/10 text-red-400 text-center">
+          <div className="mb-4 sm:mb-6 p-3 border border-red-500/50 bg-red-500/10 text-red-400 text-center text-sm sm:text-base">
             {error}
           </div>
         )}
 
         {/* Player Name Input */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <label className="block text-cyan-400 font-bold mb-2 uppercase tracking-wider text-sm">
             Your Name
           </label>
@@ -100,21 +100,21 @@ const MultiplayerSetup: React.FC<MultiplayerSetupProps> = ({ onRoomCreated, onRo
             onKeyPress={handleNameKeyPress}
             placeholder="Enter your name"
             maxLength={20}
-            className="w-full px-4 py-3 bg-black border-2 border-white/20 text-white font-mono text-lg focus:border-cyan-400 focus:outline-none transition-colors"
+            className="w-full px-4 py-4 sm:py-3 bg-black border-2 border-white/20 text-white font-mono text-base sm:text-lg focus:border-cyan-400 focus:outline-none transition-colors"
             disabled={isCreating || isJoining}
           />
         </div>
 
         {/* Create Room Section */}
-        <div className="mb-6 p-6 border border-cyan-500/30 bg-cyan-500/5">
-          <h2 className="text-2xl text-white font-bold mb-3">Create New Room</h2>
-          <p className="text-gray-400 text-sm mb-4">
+        <div className="mb-6 p-4 sm:p-6 border border-cyan-500/30 bg-cyan-500/5">
+          <h2 className="text-xl sm:text-2xl text-white font-bold mb-3">Create New Room</h2>
+          <p className="text-gray-400 text-xs sm:text-sm mb-4">
             Host a new game and invite up to 4 other players to join.
           </p>
           <button
             onClick={handleCreateRoom}
             disabled={isCreating || isJoining || !playerName.trim()}
-            className="w-full px-8 py-3 font-bold uppercase tracking-widest border-2 border-cyan-400 text-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-6 py-4 sm:px-8 sm:py-3 text-base sm:text-lg font-bold uppercase tracking-widest border-2 border-cyan-400 text-cyan-400 bg-cyan-400/10 hover:bg-cyan-400/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isCreating ? 'CREATING...' : 'CREATE ROOM'}
           </button>
@@ -133,9 +133,9 @@ const MultiplayerSetup: React.FC<MultiplayerSetupProps> = ({ onRoomCreated, onRo
         </div>
 
         {/* Join Room Section */}
-        <div className="mb-8 p-6 border border-purple-500/30 bg-purple-500/5">
-          <h2 className="text-2xl text-white font-bold mb-3">Join Existing Room</h2>
-          <p className="text-gray-400 text-sm mb-4">
+        <div className="mb-6 sm:mb-8 p-4 sm:p-6 border border-purple-500/30 bg-purple-500/5">
+          <h2 className="text-xl sm:text-2xl text-white font-bold mb-3">Join Existing Room</h2>
+          <p className="text-gray-400 text-xs sm:text-sm mb-4">
             Enter the room code shared by your host to join the game.
           </p>
           <input
@@ -145,13 +145,13 @@ const MultiplayerSetup: React.FC<MultiplayerSetupProps> = ({ onRoomCreated, onRo
             onKeyPress={handleCodeKeyPress}
             placeholder="ROOM CODE"
             maxLength={6}
-            className="w-full px-4 py-3 bg-black border-2 border-white/20 text-white font-mono text-lg text-center tracking-widest mb-4 focus:border-purple-400 focus:outline-none transition-colors uppercase"
+            className="w-full px-4 py-4 sm:py-3 bg-black border-2 border-white/20 text-white font-mono text-base sm:text-lg text-center tracking-widest mb-4 focus:border-purple-400 focus:outline-none transition-colors uppercase"
             disabled={isCreating || isJoining}
           />
           <button
             onClick={handleJoinRoom}
             disabled={isCreating || isJoining || !playerName.trim() || !roomCode.trim()}
-            className="w-full px-8 py-3 font-bold uppercase tracking-widest border-2 border-purple-400 text-purple-400 bg-purple-400/10 hover:bg-purple-400/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-6 py-4 sm:px-8 sm:py-3 text-base sm:text-lg font-bold uppercase tracking-widest border-2 border-purple-400 text-purple-400 bg-purple-400/10 hover:bg-purple-400/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isJoining ? 'JOINING...' : 'JOIN ROOM'}
           </button>
@@ -161,7 +161,7 @@ const MultiplayerSetup: React.FC<MultiplayerSetupProps> = ({ onRoomCreated, onRo
         <button
           onClick={onBack}
           disabled={isCreating || isJoining}
-          className="w-full px-8 py-3 font-bold uppercase tracking-widest border-2 border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-6 py-4 sm:px-8 sm:py-3 text-base sm:text-lg font-bold uppercase tracking-widest border-2 border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Back to Menu
         </button>

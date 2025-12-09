@@ -137,7 +137,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative w-screen h-screen bg-black overflow-hidden select-none">
+    <div className="relative w-screen h-screen bg-black overflow-auto select-none">
       {/* Solo Mode */}
       {appMode === 'solo' && (
         <>

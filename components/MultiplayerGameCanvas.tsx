@@ -34,6 +34,9 @@ const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
   const particlesRef = useRef<Particle[]>([]);
   const currentPlayer = multiplayerService.getCurrentPlayer();
 
+  // Interpolation targets for smooth player movement
+  const playerTargetsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
   // Initialize and update players when initialPlayers changes
   useEffect(() => {
     // Update the map with all players from initialPlayers
@@ -96,9 +99,10 @@ const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
           position: data.position
         };
         playersRef.current.set(data.playerId, newPlayer);
+        playerTargetsRef.current.set(data.playerId, { ...data.position });
       } else {
-        // Update existing player position
-        player.position = data.position;
+        // Store target position for interpolation
+        playerTargetsRef.current.set(data.playerId, { ...data.position });
       }
     };
 
@@ -189,6 +193,20 @@ const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
         multiplayerService.sendPlayerPosition(myPlayer.position);
       }
     }
+
+    // Interpolate other players' positions for smooth movement
+    playersRef.current.forEach((player, playerId) => {
+      // Skip current player (controlled locally)
+      if (playerId === currentPlayer?.id) return;
+
+      const target = playerTargetsRef.current.get(playerId);
+      if (target && player.alive) {
+        // Linear interpolation with factor 0.3 (smooth but responsive)
+        const lerpFactor = 0.3;
+        player.position.x += (target.x - player.position.x) * lerpFactor;
+        player.position.y += (target.y - player.position.y) * lerpFactor;
+      }
+    });
 
     // Spawn enemies (only host spawns, but we sync for all)
     const difficultyFactor = Math.min(frameCountRef.current / 3000, 3.5);

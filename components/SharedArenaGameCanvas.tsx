@@ -35,6 +35,9 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
   const currentPlayer = multiplayerService.getCurrentPlayer();
   const isHost = multiplayerService.isHost();
 
+  // Interpolation targets for smooth player movement
+  const playerTargetsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
   // Initialize and update players when initialPlayers changes
   useEffect(() => {
     // Update the map with all players from initialPlayers
@@ -97,9 +100,10 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
           position: data.position
         };
         playersRef.current.set(data.playerId, newPlayer);
+        playerTargetsRef.current.set(data.playerId, { ...data.position });
       } else {
-        // Update existing player position
-        player.position = data.position;
+        // Store target position for interpolation
+        playerTargetsRef.current.set(data.playerId, { ...data.position });
       }
     };
 
@@ -206,6 +210,20 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
         multiplayerService.sendPlayerPosition(myPlayer.position);
       }
     }
+
+    // Interpolate other players' positions for smooth movement
+    playersRef.current.forEach((player, playerId) => {
+      // Skip current player (controlled locally)
+      if (playerId === currentPlayer?.id) return;
+
+      const target = playerTargetsRef.current.get(playerId);
+      if (target && player.alive) {
+        // Linear interpolation with factor 0.3 (smooth but responsive)
+        const lerpFactor = 0.3;
+        player.position.x += (target.x - player.position.x) * lerpFactor;
+        player.position.y += (target.y - player.position.y) * lerpFactor;
+      }
+    });
 
     // Spawn enemies (only host spawns in shared arena)
     if (isHost) {

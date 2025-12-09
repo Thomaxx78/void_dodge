@@ -70,11 +70,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
 
   return (
     <>
-    <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-8">
+    <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 sm:p-6 md:p-8">
       {/* Top HUD */}
       <div className="flex justify-between items-start w-full">
         <div>
-          <h1 className="text-white text-2xl font-bold tracking-widest uppercase opacity-80 neon-text mb-1">
+          <h1 className="text-white text-xl sm:text-2xl font-bold tracking-widest uppercase opacity-80 neon-text mb-1">
             Neon Void
           </h1>
           <div className="flex flex-col">
@@ -86,7 +86,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
         </div>
         <div className="text-right">
           <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Score</p>
-          <p className="text-4xl text-white font-mono font-bold neon-text">{Math.floor(score)}</p>
+          <p className="text-3xl sm:text-4xl text-white font-mono font-bold neon-text">{Math.floor(score)}</p>
         </div>
       </div>
 
@@ -94,18 +94,18 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
       <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
         
         {gameState === GameState.MENU && (
-          <div className="text-center bg-black/80 p-12 backdrop-blur-sm border border-white/10 rounded-lg shadow-[0_0_50px_rgba(255,255,255,0.1)]">
-            <h2 className="text-6xl text-white font-black tracking-tighter mb-4 neon-text italic">
+          <div className="text-center bg-black/80 px-4 sm:px-6 py-6 sm:py-8 md:py-12 backdrop-blur-sm border border-white/10 rounded-lg shadow-[0_0_50px_rgba(255,255,255,0.1)] max-w-md mx-4">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl text-white font-black tracking-tighter mb-4 sm:mb-6 md:mb-8 neon-text italic">
               DODGE
             </h2>
-            <p className="text-gray-400 mb-8 max-w-md mx-auto">
+            <p className="text-sm sm:text-base text-gray-400 mb-6 sm:mb-8 max-w-md mx-auto">
               Use <span className="text-white font-bold border border-white/20 px-1 rounded">Arrows</span> or <span className="text-white font-bold border border-white/20 px-1 rounded">WASD</span> to move. <br/>
               Avoid the <span className="text-red-500 font-bold neon-red">RED SQUARES</span>.
             </p>
             <div className="space-y-4">
               <button
                 onClick={startGame}
-                className="w-full group relative px-8 py-3 bg-transparent border-2 border-white text-white font-bold uppercase tracking-widest overflow-hidden hover:bg-white hover:text-black transition-all duration-300"
+                className="w-full group relative px-6 py-4 sm:px-8 sm:py-3 text-base sm:text-lg bg-transparent border-2 border-white text-white font-bold uppercase tracking-widest overflow-hidden hover:bg-white hover:text-black transition-all duration-300"
               >
                 <span className="relative z-10">Solo Game</span>
                 <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
@@ -113,7 +113,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
               {onMultiplayerClick && (
                 <button
                   onClick={onMultiplayerClick}
-                  className="w-full group relative px-8 py-3 bg-transparent border-2 border-purple-400 text-purple-400 font-bold uppercase tracking-widest overflow-hidden hover:bg-purple-400 hover:text-black transition-all duration-300"
+                  className="w-full group relative px-6 py-4 sm:px-8 sm:py-3 text-base sm:text-lg bg-transparent border-2 border-purple-400 text-purple-400 font-bold uppercase tracking-widest overflow-hidden hover:bg-purple-400 hover:text-black transition-all duration-300"
                 >
                   <span className="relative z-10">Multiplayer</span>
                   <div className="absolute inset-0 bg-purple-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
@@ -131,35 +131,35 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
         )}
 
         {gameState === GameState.GAME_OVER && (
-          <div className="text-center bg-black/90 p-10 max-w-2xl border-2 border-red-600/50 shadow-[0_0_50px_rgba(255,0,0,0.2)] relative overflow-hidden">
+          <div className="text-center bg-black/90 px-4 sm:px-6 py-6 sm:py-8 md:py-10 max-w-md sm:max-w-lg md:max-w-2xl mx-4 border-2 border-red-600/50 shadow-[0_0_50px_rgba(255,0,0,0.2)] relative overflow-hidden">
              {/* Decorative lines */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent animate-pulse"></div>
             <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent animate-pulse"></div>
 
-            <h2 className="text-6xl text-red-600 font-black tracking-tighter mb-2 neon-red">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl text-red-600 font-black tracking-tighter mb-2 sm:mb-4 neon-red">
               TERMINATED
             </h2>
-            <div className="mb-6 flex justify-center gap-12">
+            <div className="mb-4 sm:mb-6 flex justify-center gap-6 sm:gap-8 md:gap-12">
               <div className="text-center">
                 <p className="text-gray-400 uppercase tracking-widest text-xs">Score</p>
-                <p className="text-4xl text-white font-mono neon-text">{Math.floor(score)}</p>
+                <p className="text-3xl sm:text-4xl text-white font-mono neon-text">{Math.floor(score)}</p>
               </div>
               <div className="text-center">
                 <p className="text-gray-400 uppercase tracking-widest text-xs">Best</p>
-                <p className="text-4xl text-yellow-500 font-mono neon-text">{Math.floor(highScore)}</p>
+                <p className="text-3xl sm:text-4xl text-yellow-500 font-mono neon-text">{Math.floor(highScore)}</p>
               </div>
             </div>
 
             {/* AI Commentary Section */}
-            <div className="mb-8 min-h-[80px] flex items-center justify-center">
+            <div className="mb-6 sm:mb-8 min-h-[60px] sm:min-h-[80px] flex items-center justify-center">
               {loadingCommentary ? (
-                <p className="text-red-400/60 animate-pulse font-mono text-sm">
+                <p className="text-red-400/60 animate-pulse font-mono text-xs sm:text-sm">
                   [ ANALYZING FAILURE PATTERNS... ]
                 </p>
               ) : (
                 <div className="relative">
                   <span className="absolute -left-4 -top-4 text-4xl text-red-800 opacity-20">"</span>
-                  <p className="text-red-100 font-medium italic text-lg leading-relaxed max-w-lg">
+                  <p className="text-red-100 font-medium italic text-base sm:text-lg leading-relaxed max-w-lg">
                     {commentary}
                   </p>
                   <span className="absolute -right-4 -bottom-4 text-4xl text-red-800 opacity-20">"</span>
@@ -188,7 +188,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
                 <button
                   onClick={handleSubmitScore}
                   disabled={!playerName.trim()}
-                  className="w-full group relative px-8 py-3 bg-cyan-600 border border-cyan-500 text-white font-bold uppercase tracking-widest hover:bg-cyan-500 disabled:bg-gray-600 disabled:border-gray-500 disabled:cursor-not-allowed transition-all duration-200 shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+                  className="w-full group relative px-6 py-4 sm:px-8 sm:py-3 text-base sm:text-lg bg-cyan-600 border border-cyan-500 text-white font-bold uppercase tracking-widest hover:bg-cyan-500 disabled:bg-gray-600 disabled:border-gray-500 disabled:cursor-not-allowed transition-all duration-200 shadow-[0_0_20px_rgba(6,182,212,0.5)]"
                 >
                   Submit to Leaderboard
                 </button>
@@ -213,13 +213,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
             <div className="space-y-3">
               <button
                 onClick={resetGame}
-                className="w-full group relative px-8 py-3 bg-red-600 border border-red-500 text-white font-bold uppercase tracking-widest hover:bg-red-500 transition-all duration-200 shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+                className="w-full group relative px-6 py-4 sm:px-8 sm:py-3 text-base sm:text-lg bg-red-600 border border-red-500 text-white font-bold uppercase tracking-widest hover:bg-red-500 transition-all duration-200 shadow-[0_0_20px_rgba(220,38,38,0.5)]"
               >
                 Retry
               </button>
               <button
                 onClick={handleViewLeaderboard}
-                className="w-full group relative px-6 py-2 bg-transparent border border-cyan-400/50 text-cyan-400 font-bold uppercase tracking-widest text-sm hover:bg-cyan-400/10 transition-all duration-200"
+                className="w-full group relative px-6 py-3 sm:px-6 sm:py-2 text-sm sm:text-base bg-transparent border border-cyan-400/50 text-cyan-400 font-bold uppercase tracking-widest hover:bg-cyan-400/10 transition-all duration-200"
               >
                 View Leaderboard
               </button>
