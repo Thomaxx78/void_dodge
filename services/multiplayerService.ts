@@ -10,7 +10,11 @@ import {
   PlayerDiedEvent,
   GameFinishedEvent,
   HostChangedEvent,
-  ErrorEvent
+  ErrorEvent,
+  GameMode,
+  GameModeSelectedEvent,
+  EnemySpawnedEvent,
+  EnemyMovedEvent
 } from '../types/multiplayer';
 
 class MultiplayerService {
@@ -106,6 +110,11 @@ class MultiplayerService {
     this.socket.emit('toggle-ready', this.currentRoom.id);
   }
 
+  selectGameMode(gameMode: GameMode) {
+    if (!this.socket || !this.currentRoom) return;
+    this.socket.emit('select-game-mode', { roomId: this.currentRoom.id, gameMode });
+  }
+
   startGame() {
     if (!this.socket || !this.currentRoom) return;
     this.socket.emit('start-game', this.currentRoom.id);
@@ -122,6 +131,16 @@ class MultiplayerService {
   sendPlayerDied() {
     if (!this.socket || !this.currentRoom) return;
     this.socket.emit('player-died', this.currentRoom.id);
+  }
+
+  spawnEnemy(enemy: any) {
+    if (!this.socket || !this.currentRoom) return;
+    this.socket.emit('spawn-enemy', { roomId: this.currentRoom.id, enemy });
+  }
+
+  updateEnemies(enemies: any[]) {
+    if (!this.socket || !this.currentRoom) return;
+    this.socket.emit('update-enemies', { roomId: this.currentRoom.id, enemies });
   }
 
   // Event listeners
@@ -161,6 +180,18 @@ class MultiplayerService {
     this.socket?.on('error', callback);
   }
 
+  onGameModeSelected(callback: (data: GameModeSelectedEvent) => void) {
+    this.socket?.on('game-mode-selected', callback);
+  }
+
+  onEnemySpawned(callback: (data: EnemySpawnedEvent) => void) {
+    this.socket?.on('enemy-spawned', callback);
+  }
+
+  onEnemiesUpdated(callback: (data: EnemyMovedEvent) => void) {
+    this.socket?.on('enemies-updated', callback);
+  }
+
   // Remove event listeners
   offPlayerJoined(callback: (data: PlayerJoinedEvent) => void) {
     this.socket?.off('player-joined', callback);
@@ -196,6 +227,18 @@ class MultiplayerService {
 
   offError(callback: (error: ErrorEvent) => void) {
     this.socket?.off('error', callback);
+  }
+
+  offGameModeSelected(callback: (data: GameModeSelectedEvent) => void) {
+    this.socket?.off('game-mode-selected', callback);
+  }
+
+  offEnemySpawned(callback: (data: EnemySpawnedEvent) => void) {
+    this.socket?.off('enemy-spawned', callback);
+  }
+
+  offEnemiesUpdated(callback: (data: EnemyMovedEvent) => void) {
+    this.socket?.off('enemies-updated', callback);
   }
 
   getCurrentRoom(): MultiplayerRoom | null {

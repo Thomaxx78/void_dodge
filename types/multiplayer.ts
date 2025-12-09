@@ -8,6 +8,8 @@ export interface MultiplayerPlayer {
   position: { x: number; y: number };
 }
 
+export type GameMode = 'battle-royale' | 'shared-arena';
+
 export interface MultiplayerRoom {
   id: string;
   hostId: string;
@@ -15,6 +17,7 @@ export interface MultiplayerRoom {
   state: 'waiting' | 'playing' | 'finished';
   maxPlayers: number;
   winner: string | null;
+  gameMode: GameMode | null;
 }
 
 export interface RoomCreatedEvent {
@@ -61,4 +64,27 @@ export interface HostChangedEvent {
 
 export interface ErrorEvent {
   message: string;
+}
+
+export interface GameModeSelectedEvent {
+  gameMode: GameMode;
+  room: MultiplayerRoom;
+}
+
+export interface EnemySpawnedEvent {
+  enemy: {
+    id: string;
+    pos: { x: number; y: number };
+    vel: { x: number; y: number };
+    size: number;
+  };
+}
+
+export interface EnemyMovedEvent {
+  enemies: Array<{
+    id: string;
+    pos: { x: number; y: number };
+    vel: { x: number; y: number };
+    size: number;
+  }>;
 }

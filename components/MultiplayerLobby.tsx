@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { multiplayerService } from '../services/multiplayerService';
-import { MultiplayerRoom, PlayerJoinedEvent, PlayerLeftEvent, HostChangedEvent } from '../types/multiplayer';
+import { MultiplayerRoom, PlayerJoinedEvent, PlayerLeftEvent, HostChangedEvent, GameMode, GameModeSelectedEvent } from '../types/multiplayer';
 
 interface MultiplayerLobbyProps {
   room: MultiplayerRoom;
@@ -31,6 +31,10 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ room: initialRoom, 
       setRoom(data.room);
     };
 
+    const handleGameModeSelected = (data: GameModeSelectedEvent) => {
+      setRoom(data.room);
+    };
+
     const handleGameStarted = () => {
       onStartGame();
     };
@@ -44,6 +48,7 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ room: initialRoom, 
     multiplayerService.onPlayerLeft(handlePlayerLeft);
     multiplayerService.onRoomUpdated(handleRoomUpdated);
     multiplayerService.onHostChanged(handleHostChanged);
+    multiplayerService.onGameModeSelected(handleGameModeSelected);
     multiplayerService.onGameStarted(handleGameStarted);
     multiplayerService.onError(handleError);
 
@@ -52,6 +57,7 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ room: initialRoom, 
       multiplayerService.offPlayerLeft(handlePlayerLeft);
       multiplayerService.offRoomUpdated(handleRoomUpdated);
       multiplayerService.offHostChanged(handleHostChanged);
+      multiplayerService.offGameModeSelected(handleGameModeSelected);
       multiplayerService.offGameStarted(handleGameStarted);
       multiplayerService.offError(handleError);
     };
@@ -60,6 +66,12 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ room: initialRoom, 
   const handleToggleReady = () => {
     if (!isHost) {
       multiplayerService.toggleReady();
+    }
+  };
+
+  const handleSelectGameMode = (gameMode: GameMode) => {
+    if (isHost) {
+      multiplayerService.selectGameMode(gameMode);
     }
   };
 
@@ -75,7 +87,7 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ room: initialRoom, 
   };
 
   const allPlayersReady = room.players.every(p => p.ready);
-  const canStart = isHost && allPlayersReady && room.players.length >= 2;
+  const canStart = isHost && allPlayersReady && room.players.length >= 2 && room.gameMode !== null;
 
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black/95">
@@ -153,13 +165,75 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ room: initialRoom, 
           ))}
         </div>
 
+        {/* Game Mode Selection */}
+        {isHost && !room.gameMode && (
+          <div className="mb-8 p-6 border-2 border-yellow-500/50 bg-yellow-500/10">
+            <h2 className="text-2xl text-yellow-400 font-bold mb-4 text-center">SELECT GAME MODE</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Battle Royale Mode */}
+              <button
+                onClick={() => handleSelectGameMode('battle-royale')}
+                className="p-6 border-2 border-purple-500 bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-300 text-left"
+              >
+                <h3 className="text-xl text-purple-400 font-bold mb-2">BATTLE ROYALE</h3>
+                <p className="text-gray-300 text-sm mb-3">
+                  Chaque joueur a son propre terrain. Les ennemis ciblent votre position. Le dernier survivant gagne!
+                </p>
+                <div className="flex items-center gap-2 text-purple-400 text-xs">
+                  <span>👤</span>
+                  <span>Solo arenas</span>
+                  <span>•</span>
+                  <span>🎯</span>
+                  <span>Ennemis ciblés</span>
+                </div>
+              </button>
+
+              {/* Shared Arena Mode */}
+              <button
+                onClick={() => handleSelectGameMode('shared-arena')}
+                className="p-6 border-2 border-cyan-500 bg-cyan-500/10 hover:bg-cyan-500/20 transition-all duration-300 text-left"
+              >
+                <h3 className="text-xl text-cyan-400 font-bold mb-2">SHARED ARENA</h3>
+                <p className="text-gray-300 text-sm mb-3">
+                  Tous les joueurs partagent le même terrain. Les ennemis apparaissent aléatoirement. Voyez les autres joueurs en temps réel!
+                </p>
+                <div className="flex items-center gap-2 text-cyan-400 text-xs">
+                  <span>👥</span>
+                  <span>Terrain partagé</span>
+                  <span>•</span>
+                  <span>🎲</span>
+                  <span>Spawn aléatoire</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Game Mode Selected Display */}
+        {room.gameMode && (
+          <div className="mb-6 p-4 border border-green-500/50 bg-green-500/10">
+            <p className="text-green-400 text-center font-bold">
+              Mode sélectionné: {room.gameMode === 'battle-royale' ? '👤 BATTLE ROYALE' : '👥 SHARED ARENA'}
+            </p>
+            <p className="text-gray-400 text-center text-sm mt-1">
+              {room.gameMode === 'battle-royale'
+                ? 'Terrains séparés - Ennemis ciblés'
+                : 'Terrain partagé - Spawn aléatoire'}
+            </p>
+          </div>
+        )}
+
         {/* Info Box */}
         <div className="mb-8 p-4 border border-cyan-500/30 bg-cyan-500/5">
           <p className="text-cyan-400 text-center text-sm">
             {isHost
-              ? allPlayersReady
+              ? !room.gameMode
+                ? 'Sélectionnez un mode de jeu pour continuer.'
+                : allPlayersReady
                 ? 'All players ready! You can start the game.'
                 : 'Waiting for all players to be ready...'
+              : !room.gameMode
+              ? 'Waiting for host to select game mode...'
               : currentPlayer?.ready
               ? 'You are ready! Waiting for host to start...'
               : 'Click READY when you\'re prepared to play!'}

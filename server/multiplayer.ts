@@ -32,6 +32,15 @@ interface Player {
   position: { x: number; y: number };
 }
 
+type GameMode = 'battle-royale' | 'shared-arena';
+
+interface Enemy {
+  id: string;
+  pos: { x: number; y: number };
+  vel: { x: number; y: number };
+  size: number;
+}
+
 interface Room {
   id: string;
   hostId: string;
@@ -40,6 +49,8 @@ interface Room {
   maxPlayers: number;
   availableColors: string[];
   winner: string | null;
+  gameMode: GameMode | null;
+  enemies: Enemy[];
 }
 
 const rooms = new Map<string, Room>();
@@ -78,7 +89,9 @@ io.on('connection', (socket) => {
       state: 'waiting',
       maxPlayers: 5,
       availableColors: [...PLAYER_COLORS.slice(1)], // Remaining colors
-      winner: null
+      winner: null,
+      gameMode: null,
+      enemies: []
     };
 
     const player: Player = {
@@ -151,6 +164,22 @@ io.on('connection', (socket) => {
     console.log(`${playerName} joined room ${roomId}`);
   });
 
+  // Select game mode (host only)
+  socket.on('select-game-mode', ({ roomId, gameMode }: { roomId: string; gameMode: GameMode }) => {
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    // Only host can select game mode
+    if (socket.id !== room.hostId) {
+      socket.emit('error', { message: 'Only host can select game mode' });
+      return;
+    }
+
+    room.gameMode = gameMode;
+    io.to(roomId).emit('game-mode-selected', { gameMode, room: serializeRoom(room) });
+    console.log(`Game mode selected in room ${roomId}: ${gameMode}`);
+  });
+
   // Toggle ready status
   socket.on('toggle-ready', (roomId: string) => {
     const room = rooms.get(roomId);
@@ -177,6 +206,12 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Check if game mode is selected
+    if (!room.gameMode) {
+      socket.emit('error', { message: 'Please select a game mode first' });
+      return;
+    }
+
     // Check if all players are ready
     const allReady = Array.from(room.players.values()).every(p => p.ready);
     if (!allReady) {
@@ -186,7 +221,7 @@ io.on('connection', (socket) => {
 
     room.state = 'playing';
     io.to(roomId).emit('game-started', serializeRoom(room));
-    console.log(`Game started in room ${roomId}`);
+    console.log(`Game started in room ${roomId} with mode: ${room.gameMode}`);
   });
 
   // Player position update
@@ -224,7 +259,40 @@ io.on('connection', (socket) => {
         winnerId: alivePlayers[0].id
       });
       console.log(`Game finished in room ${roomId}. Winner: ${room.winner}`);
+    } else if (alivePlayers.length === 0) {
+      // All players died
+      room.state = 'finished';
+      room.winner = null;
+      io.to(roomId).emit('game-finished', {
+        winner: 'No one',
+        winnerId: null
+      });
+      console.log(`Game finished in room ${roomId}. No winner - all players died`);
     }
+  });
+
+  // Spawn enemy (host only in shared-arena mode)
+  socket.on('spawn-enemy', ({ roomId, enemy }: { roomId: string; enemy: Enemy }) => {
+    const room = rooms.get(roomId);
+    if (!room || room.state !== 'playing' || room.gameMode !== 'shared-arena') return;
+
+    // Only host can spawn enemies
+    if (socket.id !== room.hostId) return;
+
+    room.enemies.push(enemy);
+    io.to(roomId).emit('enemy-spawned', { enemy });
+  });
+
+  // Update enemies (host only in shared-arena mode)
+  socket.on('update-enemies', ({ roomId, enemies }: { roomId: string; enemies: Enemy[] }) => {
+    const room = rooms.get(roomId);
+    if (!room || room.state !== 'playing' || room.gameMode !== 'shared-arena') return;
+
+    // Only host can update enemies
+    if (socket.id !== room.hostId) return;
+
+    room.enemies = enemies;
+    socket.to(roomId).emit('enemies-updated', { enemies });
   });
 
   // Leave room
@@ -290,7 +358,8 @@ function serializeRoom(room: Room) {
     players: Array.from(room.players.values()),
     state: room.state,
     maxPlayers: room.maxPlayers,
-    winner: room.winner
+    winner: room.winner,
+    gameMode: room.gameMode
   };
 }
 

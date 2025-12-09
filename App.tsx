@@ -4,6 +4,7 @@ import UIOverlay from './components/UIOverlay';
 import MultiplayerSetup from './components/MultiplayerSetup';
 import MultiplayerLobby from './components/MultiplayerLobby';
 import MultiplayerGameCanvas from './components/MultiplayerGameCanvas';
+import SharedArenaGameCanvas from './components/SharedArenaGameCanvas';
 import MultiplayerUIOverlay from './components/MultiplayerUIOverlay';
 import { GameState } from './types';
 import { MultiplayerRoom, MultiplayerPlayer } from './types/multiplayer';
@@ -144,13 +145,21 @@ const App: React.FC = () => {
       )}
 
       {/* Multiplayer Game */}
-      {appMode === 'multiplayer-game' && multiplayerPlayers.length > 0 && (
+      {appMode === 'multiplayer-game' && multiplayerPlayers.length > 0 && multiplayerRoom && (
         <>
-          <MultiplayerGameCanvas
-            gameState={gameState}
-            players={multiplayerPlayers}
-            onPlayerDied={handlePlayerDied}
-          />
+          {multiplayerRoom.gameMode === 'battle-royale' ? (
+            <MultiplayerGameCanvas
+              gameState={gameState}
+              players={multiplayerPlayers}
+              onPlayerDied={handlePlayerDied}
+            />
+          ) : (
+            <SharedArenaGameCanvas
+              gameState={gameState}
+              players={multiplayerPlayers}
+              onPlayerDied={handlePlayerDied}
+            />
+          )}
           <MultiplayerUIOverlay
             gameState={gameState}
             players={multiplayerPlayers}
