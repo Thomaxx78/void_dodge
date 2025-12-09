@@ -26,7 +26,11 @@ class MultiplayerService {
 
     this.socket = io(MULTIPLAYER_URL, {
       transports: ['websocket', 'polling'],
-      autoConnect: true
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      forceNew: false
     });
 
     this.socket.on('connect', () => {

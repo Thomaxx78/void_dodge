@@ -10,7 +10,7 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.NODE_ENV === 'production'
-      ? [process.env.FRONTEND_URL || 'https://dodge.vercel.app']
+      ? [process.env.FRONTEND_URL || 'https://void-dodge.vercel.app/']
       : ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000'],
     methods: ['GET', 'POST'],
     credentials: true
@@ -102,12 +102,18 @@ io.on('connection', (socket) => {
 
   // Join room
   socket.on('join-room', ({ roomId, playerName }: { roomId: string; playerName: string }) => {
+    console.log(`Join attempt - Room: ${roomId}, Player: ${playerName}`);
+    console.log(`Available rooms: [${Array.from(rooms.keys()).join(', ')}]`);
+
     const room = rooms.get(roomId);
 
     if (!room) {
+      console.log(`❌ Room ${roomId} NOT FOUND!`);
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+
+    console.log(`✅ Room ${roomId} found! Adding player...`);
 
     if (room.state !== 'waiting') {
       socket.emit('error', { message: 'Game already in progress' });
