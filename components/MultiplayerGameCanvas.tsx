@@ -61,7 +61,8 @@ const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
   useEffect(() => {
     const handlePlayerMoved = (data: PlayerMovedEvent) => {
       const player = playersRef.current.get(data.playerId);
-      if (player) {
+      if (player && data.playerId !== currentPlayer?.id) {
+        // Only update position for OTHER players
         player.position = data.position;
       }
     };
@@ -80,7 +81,7 @@ const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
       multiplayerService.offPlayerMoved(handlePlayerMoved);
       multiplayerService.offPlayerDied(handlePlayerDied);
     };
-  }, []);
+  }, [currentPlayer]);
 
   // Initialize game
   const initGame = useCallback(() => {
@@ -102,7 +103,15 @@ const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
       };
       player.alive = true;
     });
-  }, []);
+
+    // Send initial position to server immediately
+    if (currentPlayer) {
+      const myPlayer = playersRef.current.get(currentPlayer.id);
+      if (myPlayer) {
+        multiplayerService.sendPlayerPosition(myPlayer.position);
+      }
+    }
+  }, [currentPlayer]);
 
   // Game loop
   const update = useCallback(() => {
