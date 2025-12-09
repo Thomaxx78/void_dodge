@@ -111,22 +111,34 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
     };
 
     const handleEnemySpawned = (data: EnemySpawnedEvent) => {
-      if (!isHost) {
-        enemiesRef.current.push({
-          ...data.enemy,
-          color: '#ff0033',
-          opacity: 1
-        });
-      }
+      // Deprecated - not used anymore, enemies are synced in batch
     };
 
     const handleEnemiesUpdated = (data: EnemyMovedEvent) => {
       if (!isHost) {
-        enemiesRef.current = data.enemies.map(e => ({
-          ...e,
-          color: '#ff0033',
-          opacity: 1
-        }));
+        // Update existing enemies and add new ones
+        const receivedIds = new Set(data.enemies.map(e => e.id));
+
+        // Remove enemies that are no longer in the update
+        enemiesRef.current = enemiesRef.current.filter(e => receivedIds.has(e.id));
+
+        // Update positions of existing enemies or add new ones
+        data.enemies.forEach(receivedEnemy => {
+          const existing = enemiesRef.current.find(e => e.id === receivedEnemy.id);
+          if (existing) {
+            // Update existing enemy (position and velocity for interpolation)
+            existing.pos = receivedEnemy.pos;
+            existing.vel = receivedEnemy.vel;
+            existing.size = receivedEnemy.size;
+          } else {
+            // Add new enemy
+            enemiesRef.current.push({
+              ...receivedEnemy,
+              color: '#ff0033',
+              opacity: 1
+            });
+          }
+        });
       }
     };
 
@@ -209,8 +221,8 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
       myPlayer.position.x = Math.max(PLAYER_SIZE, Math.min(GAME_WIDTH - PLAYER_SIZE, myPlayer.position.x));
       myPlayer.position.y = Math.max(PLAYER_SIZE, Math.min(GAME_HEIGHT - PLAYER_SIZE, myPlayer.position.y));
 
-      // Send position to server every 3 frames
-      if (frameCountRef.current % 3 === 0) {
+      // Send position to server every 5 frames (reduced frequency)
+      if (frameCountRef.current % 5 === 0) {
         multiplayerService.sendPlayerPosition(myPlayer.position);
       }
     }
@@ -264,35 +276,29 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
 
           enemiesRef.current.push(enemy);
 
-          // Broadcast enemy spawn to other players
-          multiplayerService.spawnEnemy({
-            id: enemy.id,
-            pos: enemy.pos,
-            vel: enemy.vel,
-            size: enemy.size
-          });
+          // Don't broadcast individual spawns - we'll send all enemies in batch
         }
       }
 
-      // Update enemies and broadcast every 2 frames
-      if (frameCountRef.current % 2 === 0) {
-        for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
-          const enemy = enemiesRef.current[i];
-          enemy.pos.x += enemy.vel.x;
-          enemy.pos.y += enemy.vel.y;
+      // Update enemies locally
+      for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
+        const enemy = enemiesRef.current[i];
+        enemy.pos.x += enemy.vel.x;
+        enemy.pos.y += enemy.vel.y;
 
-          const margin = 100;
-          if (
-            enemy.pos.x < -margin ||
-            enemy.pos.x > GAME_WIDTH + margin ||
-            enemy.pos.y < -margin ||
-            enemy.pos.y > GAME_HEIGHT + margin
-          ) {
-            enemiesRef.current.splice(i, 1);
-          }
+        const margin = 100;
+        if (
+          enemy.pos.x < -margin ||
+          enemy.pos.x > GAME_WIDTH + margin ||
+          enemy.pos.y < -margin ||
+          enemy.pos.y > GAME_HEIGHT + margin
+        ) {
+          enemiesRef.current.splice(i, 1);
         }
+      }
 
-        // Broadcast enemy positions
+      // Broadcast enemy positions every 10 frames (reduced from 2)
+      if (frameCountRef.current % 10 === 0) {
         multiplayerService.updateEnemies(
           enemiesRef.current.map(e => ({
             id: e.id,
@@ -303,11 +309,22 @@ const SharedArenaGameCanvas: React.FC<SharedArenaGameCanvasProps> = ({
         );
       }
     } else {
-      // Non-host just updates enemy positions based on received data
+      // Non-host: interpolate enemy positions locally based on velocity
       for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
         const enemy = enemiesRef.current[i];
         enemy.pos.x += enemy.vel.x;
         enemy.pos.y += enemy.vel.y;
+
+        // Remove enemies that go off screen
+        const margin = 100;
+        if (
+          enemy.pos.x < -margin ||
+          enemy.pos.x > GAME_WIDTH + margin ||
+          enemy.pos.y < -margin ||
+          enemy.pos.y > GAME_HEIGHT + margin
+        ) {
+          enemiesRef.current.splice(i, 1);
+        }
       }
     }
 

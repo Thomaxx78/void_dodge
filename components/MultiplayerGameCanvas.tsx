@@ -184,8 +184,8 @@ const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
       myPlayer.position.x = Math.max(PLAYER_SIZE, Math.min(GAME_WIDTH - PLAYER_SIZE, myPlayer.position.x));
       myPlayer.position.y = Math.max(PLAYER_SIZE, Math.min(GAME_HEIGHT - PLAYER_SIZE, myPlayer.position.y));
 
-      // Send position to server every 3 frames
-      if (frameCountRef.current % 3 === 0) {
+      // Send position to server every 5 frames (reduced frequency)
+      if (frameCountRef.current % 5 === 0) {
         multiplayerService.sendPlayerPosition(myPlayer.position);
       }
     }
