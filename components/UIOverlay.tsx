@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { GameState } from '../types';
 import { generateGameCommentary } from '../services/geminiService';
+import { submitScore } from '../services/leaderboardService';
+import Leaderboard from './Leaderboard';
 
 interface UIOverlayProps {
   gameState: GameState;
@@ -13,19 +15,43 @@ interface UIOverlayProps {
 const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, startGame, resetGame }) => {
   const [commentary, setCommentary] = useState<string>("");
   const [loadingCommentary, setLoadingCommentary] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [playerName, setPlayerName] = useState("");
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [submittedScore, setSubmittedScore] = useState<number | undefined>();
 
   useEffect(() => {
     if (gameState === GameState.GAME_OVER) {
       setLoadingCommentary(true);
+      setScoreSubmitted(false);
       // Rough estimate of time survived based on score (since logic was +1 per frame approx 60fps)
-      const timeSurvived = score / 60; 
+      const timeSurvived = score / 60;
       generateGameCommentary(score, timeSurvived)
         .then(text => setCommentary(text))
         .finally(() => setLoadingCommentary(false));
     } else {
       setCommentary("");
+      setPlayerName("");
     }
   }, [gameState, score]);
+
+  const handleSubmitScore = async () => {
+    if (!playerName.trim()) return;
+
+    const result = await submitScore(playerName.trim(), score);
+    if (result) {
+      setScoreSubmitted(true);
+      setSubmittedScore(score);
+    }
+  };
+
+  const handleViewLeaderboard = () => {
+    setShowLeaderboard(true);
+  };
+
+  const handleCloseLeaderboard = () => {
+    setShowLeaderboard(false);
+  };
 
   return (
     <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-8">
@@ -60,13 +86,22 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
               Use <span className="text-white font-bold border border-white/20 px-1 rounded">Arrows</span> or <span className="text-white font-bold border border-white/20 px-1 rounded">WASD</span> to move. <br/>
               Avoid the <span className="text-red-500 font-bold neon-red">RED SQUARES</span>.
             </p>
-            <button
-              onClick={startGame}
-              className="group relative px-8 py-3 bg-transparent border-2 border-white text-white font-bold uppercase tracking-widest overflow-hidden hover:bg-white hover:text-black transition-all duration-300"
-            >
-              <span className="relative z-10">Initialize Sequence</span>
-              <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
-            </button>
+            <div className="space-y-4">
+              <button
+                onClick={startGame}
+                className="w-full group relative px-8 py-3 bg-transparent border-2 border-white text-white font-bold uppercase tracking-widest overflow-hidden hover:bg-white hover:text-black transition-all duration-300"
+              >
+                <span className="relative z-10">Initialize Sequence</span>
+                <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
+              </button>
+              <button
+                onClick={handleViewLeaderboard}
+                className="w-full group relative px-8 py-3 bg-transparent border-2 border-cyan-400 text-cyan-400 font-bold uppercase tracking-widest overflow-hidden hover:bg-cyan-400 hover:text-black transition-all duration-300"
+              >
+                <span className="relative z-10">Leaderboard</span>
+                <div className="absolute inset-0 bg-cyan-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
+              </button>
+            </div>
           </div>
         )}
 
@@ -107,12 +142,55 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
               )}
             </div>
 
-            <button
-              onClick={resetGame}
-              className="group relative px-8 py-3 bg-red-600 border border-red-500 text-white font-bold uppercase tracking-widest hover:bg-red-500 transition-all duration-200 shadow-[0_0_20px_rgba(220,38,38,0.5)]"
-            >
-              Retry
-            </button>
+            {/* Submit Score Section */}
+            {!scoreSubmitted ? (
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label htmlFor="playerName" className="block text-gray-400 uppercase tracking-widest text-xs mb-2">
+                    Enter Your Name
+                  </label>
+                  <input
+                    id="playerName"
+                    type="text"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSubmitScore()}
+                    maxLength={20}
+                    placeholder="Anonymous"
+                    className="w-full px-4 py-2 bg-black/50 border border-cyan-500/30 text-white font-mono text-center focus:border-cyan-400 focus:outline-none focus:shadow-[0_0_10px_rgba(6,182,212,0.3)] transition-all"
+                  />
+                </div>
+                <button
+                  onClick={handleSubmitScore}
+                  disabled={!playerName.trim()}
+                  className="w-full group relative px-8 py-3 bg-cyan-600 border border-cyan-500 text-white font-bold uppercase tracking-widest hover:bg-cyan-500 disabled:bg-gray-600 disabled:border-gray-500 disabled:cursor-not-allowed transition-all duration-200 shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+                >
+                  Submit to Leaderboard
+                </button>
+              </div>
+            ) : (
+              <div className="mb-6 py-4 border border-cyan-500/50 bg-cyan-500/10">
+                <p className="text-cyan-400 font-bold uppercase tracking-widest text-sm">
+                  ✓ Score Submitted!
+                </p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={resetGame}
+                className="w-full group relative px-8 py-3 bg-red-600 border border-red-500 text-white font-bold uppercase tracking-widest hover:bg-red-500 transition-all duration-200 shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+              >
+                Retry
+              </button>
+              <button
+                onClick={handleViewLeaderboard}
+                className="w-full group relative px-6 py-2 bg-transparent border border-cyan-400/50 text-cyan-400 font-bold uppercase tracking-widest text-sm hover:bg-cyan-400/10 transition-all duration-200"
+              >
+                View Leaderboard
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -122,6 +200,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
          <span>System: React v18 // Engine: Tailwind</span>
          <span>Ai_Mod: Gemini-2.5-Flash</span>
       </div>
+
+      {/* Leaderboard Modal */}
+      {showLeaderboard && (
+        <Leaderboard
+          onClose={handleCloseLeaderboard}
+          currentScore={submittedScore}
+        />
+      )}
     </div>
   );
 };
