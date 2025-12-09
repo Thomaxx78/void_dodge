@@ -8,14 +8,17 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "tsx server/index.ts",
-    "start": "npm run server & npm run dev"
+    "multiplayer": "tsx server/multiplayer.ts",
+    "start": "npm run server & npm run multiplayer & npm run dev"
   },
   "dependencies": {
     "@google/genai": "^1.32.0",
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "react": "^19.2.1",
-    "react-dom": "^19.2.1"
+    "react-dom": "^19.2.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

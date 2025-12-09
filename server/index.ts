@@ -2,9 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3001;
+const PORT = 3003;
 const DATA_FILE = path.join(__dirname, 'leaderboard.json');
 
 app.use(cors());

@@ -1,0 +1,400 @@
+import React, { useEffect, useRef, useCallback } from 'react';
+import { GameState, Entity, Particle } from '../types';
+import { MultiplayerPlayer, PlayerMovedEvent, PlayerDiedEvent } from '../types/multiplayer';
+import { multiplayerService } from '../services/multiplayerService';
+
+interface MultiplayerGameCanvasProps {
+  gameState: GameState;
+  players: MultiplayerPlayer[];
+  onPlayerDied: () => void;
+}
+
+const PLAYER_SIZE = 12;
+const PLAYER_SPEED = 6;
+const SPAWN_RATE_INITIAL = 60;
+const ENEMY_SPEED_BASE = 3;
+const GAME_WIDTH = 1000;
+const GAME_HEIGHT = 600;
+
+const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
+  gameState,
+  players: initialPlayers,
+  onPlayerDied
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const requestRef = useRef<number>(0);
+  const frameCountRef = useRef<number>(0);
+
+  // Input state
+  const keysPressed = useRef<Set<string>>(new Set());
+
+  // Game Entities
+  const playersRef = useRef<Map<string, MultiplayerPlayer>>(new Map());
+  const enemiesRef = useRef<Entity[]>([]);
+  const particlesRef = useRef<Particle[]>([]);
+  const currentPlayer = multiplayerService.getCurrentPlayer();
+
+  // Initialize players
+  useEffect(() => {
+    const playerMap = new Map<string, MultiplayerPlayer>();
+    initialPlayers.forEach(p => {
+      playerMap.set(p.id, p);
+    });
+    playersRef.current = playerMap;
+  }, [initialPlayers]);
+
+  // Input listeners
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => keysPressed.current.add(e.code);
+    const handleKeyUp = (e: KeyboardEvent) => keysPressed.current.delete(e.code);
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  // Multiplayer event listeners
+  useEffect(() => {
+    const handlePlayerMoved = (data: PlayerMovedEvent) => {
+      const player = playersRef.current.get(data.playerId);
+      if (player) {
+        player.position = data.position;
+      }
+    };
+
+    const handlePlayerDied = (data: PlayerDiedEvent) => {
+      const player = playersRef.current.get(data.playerId);
+      if (player) {
+        player.alive = false;
+      }
+    };
+
+    multiplayerService.onPlayerMoved(handlePlayerMoved);
+    multiplayerService.onPlayerDied(handlePlayerDied);
+
+    return () => {
+      multiplayerService.offPlayerMoved(handlePlayerMoved);
+      multiplayerService.offPlayerDied(handlePlayerDied);
+    };
+  }, []);
+
+  // Initialize game
+  const initGame = useCallback(() => {
+    enemiesRef.current = [];
+    particlesRef.current = [];
+    frameCountRef.current = 0;
+
+    // Initialize player positions in a circle
+    const centerX = GAME_WIDTH / 2;
+    const centerY = GAME_HEIGHT / 2;
+    const radius = 100;
+    const players = Array.from(playersRef.current.values());
+
+    players.forEach((player, index) => {
+      const angle = (Math.PI * 2 * index) / players.length;
+      player.position = {
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius
+      };
+      player.alive = true;
+    });
+  }, []);
+
+  // Game loop
+  const update = useCallback(() => {
+    if (gameState !== GameState.PLAYING || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    frameCountRef.current++;
+
+    // Get current player
+    const myPlayer = currentPlayer ? playersRef.current.get(currentPlayer.id) : null;
+
+    if (myPlayer && myPlayer.alive) {
+      // Update current player movement
+      let dx = 0;
+      let dy = 0;
+
+      if (keysPressed.current.has('ArrowUp') || keysPressed.current.has('KeyW')) dy -= 1;
+      if (keysPressed.current.has('ArrowDown') || keysPressed.current.has('KeyS')) dy += 1;
+      if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('KeyA')) dx -= 1;
+      if (keysPressed.current.has('ArrowRight') || keysPressed.current.has('KeyD')) dx += 1;
+
+      if (dx !== 0 || dy !== 0) {
+        const length = Math.sqrt(dx * dx + dy * dy);
+        dx = (dx / length) * PLAYER_SPEED;
+        dy = (dy / length) * PLAYER_SPEED;
+      }
+
+      myPlayer.position.x += dx;
+      myPlayer.position.y += dy;
+
+      // Boundary check
+      myPlayer.position.x = Math.max(PLAYER_SIZE, Math.min(GAME_WIDTH - PLAYER_SIZE, myPlayer.position.x));
+      myPlayer.position.y = Math.max(PLAYER_SIZE, Math.min(GAME_HEIGHT - PLAYER_SIZE, myPlayer.position.y));
+
+      // Send position to server every 3 frames
+      if (frameCountRef.current % 3 === 0) {
+        multiplayerService.sendPlayerPosition(myPlayer.position);
+      }
+    }
+
+    // Spawn enemies (only host spawns, but we sync for all)
+    const difficultyFactor = Math.min(frameCountRef.current / 3000, 3.5);
+    const currentSpawnRate = Math.max(7, SPAWN_RATE_INITIAL - (frameCountRef.current / 30));
+
+    if (frameCountRef.current % Math.floor(currentSpawnRate) === 0) {
+      let spawnCount = 1;
+
+      if (frameCountRef.current > 500) {
+        if (Math.random() < 0.3) spawnCount = 2;
+      }
+      if (frameCountRef.current > 1500) {
+        if (Math.random() < 0.5) spawnCount = 3;
+      }
+
+      for (let i = 0; i < spawnCount; i++) {
+        const size = 15 + Math.random() * 15;
+        const side = Math.floor(Math.random() * 4);
+        let x = 0, y = 0, vx = 0, vy = 0;
+
+        // Target random alive player
+        const alivePlayers = Array.from(playersRef.current.values()).filter(p => p.alive);
+        if (alivePlayers.length === 0) continue;
+
+        const targetPlayer = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+
+        switch (side) {
+          case 0: x = Math.random() * GAME_WIDTH; y = -size; break;
+          case 1: x = GAME_WIDTH + size; y = Math.random() * GAME_HEIGHT; break;
+          case 2: x = Math.random() * GAME_WIDTH; y = GAME_HEIGHT + size; break;
+          case 3: x = -size; y = Math.random() * GAME_HEIGHT; break;
+        }
+
+        const angle = Math.atan2(
+          targetPlayer.position.y - y + (Math.random() * 100 - 50),
+          targetPlayer.position.x - x + (Math.random() * 100 - 50)
+        );
+        const speed = (ENEMY_SPEED_BASE + Math.random() * 2) * (1 + difficultyFactor * 0.4);
+
+        vx = Math.cos(angle) * speed;
+        vy = Math.sin(angle) * speed;
+
+        enemiesRef.current.push({
+          id: `enemy-${frameCountRef.current}-${i}`,
+          pos: { x, y },
+          vel: { x: vx, y: vy },
+          size,
+          color: '#ff0033',
+          opacity: 1
+        });
+      }
+    }
+
+    // Update enemies
+    for (let i = enemiesRef.current.length - 1; i >= 0; i--) {
+      const enemy = enemiesRef.current[i];
+      enemy.pos.x += enemy.vel.x;
+      enemy.pos.y += enemy.vel.y;
+
+      const margin = 100;
+      if (
+        enemy.pos.x < -margin ||
+        enemy.pos.x > GAME_WIDTH + margin ||
+        enemy.pos.y < -margin ||
+        enemy.pos.y > GAME_HEIGHT + margin
+      ) {
+        enemiesRef.current.splice(i, 1);
+        continue;
+      }
+
+      // Check collision with all alive players
+      playersRef.current.forEach((player) => {
+        if (!player.alive) return;
+
+        const closestX = Math.max(enemy.pos.x - enemy.size / 2, Math.min(player.position.x, enemy.pos.x + enemy.size / 2));
+        const closestY = Math.max(enemy.pos.y - enemy.size / 2, Math.min(player.position.y, enemy.pos.y + enemy.size / 2));
+
+        const distanceX = player.position.x - closestX;
+        const distanceY = player.position.y - closestY;
+        const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+
+        if (distanceSquared < (PLAYER_SIZE * PLAYER_SIZE)) {
+          player.alive = false;
+
+          // If it's the current player, notify server
+          if (currentPlayer && player.id === currentPlayer.id) {
+            multiplayerService.sendPlayerDied();
+            onPlayerDied();
+          }
+        }
+      });
+    }
+
+    // Update particles
+    if (frameCountRef.current % 5 === 0) {
+      particlesRef.current.push({
+        id: `p-${frameCountRef.current}`,
+        pos: { x: Math.random() * GAME_WIDTH, y: Math.random() * GAME_HEIGHT },
+        vel: { x: (Math.random() - 0.5) * 20, y: (Math.random() - 0.5) * 20 },
+        size: Math.random() * 2,
+        color: 'rgba(255, 255, 255, 0.1)',
+        life: 20,
+        maxLife: 20,
+        opacity: 0.2
+      });
+    }
+
+    for (let i = particlesRef.current.length - 1; i >= 0; i--) {
+      const p = particlesRef.current[i];
+      p.life--;
+      p.pos.x -= 2;
+      if (p.life <= 0) particlesRef.current.splice(i, 1);
+    }
+
+    draw(ctx);
+
+    requestRef.current = requestAnimationFrame(update);
+  }, [gameState, currentPlayer, onPlayerDied]);
+
+  const draw = (ctx: CanvasRenderingContext2D) => {
+    if (!canvasRef.current) return;
+    const { width, height } = canvasRef.current;
+
+    const offsetX = (width - GAME_WIDTH) / 2;
+    const offsetY = (height - GAME_HEIGHT) / 2;
+
+    // Clear
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+
+    // Game area
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Border
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#00ffff';
+    ctx.strokeRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    ctx.shadowBlur = 0;
+
+    // Grid
+    ctx.strokeStyle = 'rgba(20, 20, 20, 1)';
+    ctx.lineWidth = 1;
+    const gridSize = 50;
+    const gridOffset = (frameCountRef.current * 2) % gridSize;
+
+    ctx.beginPath();
+    for (let x = 0; x <= GAME_WIDTH; x += gridSize) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, GAME_HEIGHT);
+    }
+    for (let y = gridOffset; y <= GAME_HEIGHT; y += gridSize) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(GAME_WIDTH, y);
+    }
+    ctx.stroke();
+
+    // Particles
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    particlesRef.current.forEach(p => {
+      ctx.beginPath();
+      ctx.rect(p.pos.x, p.pos.y, p.size * 10, p.size);
+      ctx.fill();
+    });
+
+    // Enemies
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#ff0033';
+    ctx.fillStyle = '#ff0033';
+    enemiesRef.current.forEach(e => {
+      ctx.beginPath();
+      ctx.rect(e.pos.x - e.size / 2, e.pos.y - e.size / 2, e.size, e.size);
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255, 0, 51, 0.3)';
+      ctx.fillRect(e.pos.x - e.size / 2 - e.vel.x * 2, e.pos.y - e.size / 2 - e.vel.y * 2, e.size, e.size);
+
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = '#ff0033';
+    });
+
+    ctx.shadowBlur = 0;
+
+    // Players
+    playersRef.current.forEach((player) => {
+      if (!player.alive) return;
+
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = player.color;
+      ctx.fillStyle = player.color;
+      ctx.beginPath();
+      ctx.arc(player.position.x, player.position.y, PLAYER_SIZE, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Player name
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = player.color;
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(player.name, player.position.x, player.position.y - PLAYER_SIZE - 5);
+    });
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // Arena info
+    ctx.fillStyle = '#00ffff';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Arena: ${GAME_WIDTH}x${GAME_HEIGHT}`, width / 2, offsetY - 10);
+
+    // Alive players count
+    const aliveCount = Array.from(playersRef.current.values()).filter(p => p.alive).length;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(`Players Alive: ${aliveCount}`, width - 20, 30);
+  };
+
+  // Resize handler
+  useEffect(() => {
+    const handleResize = () => {
+      if (canvasRef.current) {
+        canvasRef.current.width = window.innerWidth;
+        canvasRef.current.height = window.innerHeight;
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Game loop management
+  useEffect(() => {
+    if (gameState === GameState.PLAYING) {
+      initGame();
+      requestRef.current = requestAnimationFrame(update);
+    } else {
+      cancelAnimationFrame(requestRef.current);
+    }
+    return () => cancelAnimationFrame(requestRef.current);
+  }, [gameState, initGame, update]);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 z-0" />;
+};
+
+export default MultiplayerGameCanvas;

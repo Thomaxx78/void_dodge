@@ -1,5 +1,5 @@
 // Use relative URL for both local dev and production
-const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3001/api';
+const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3003/api';
 
 export interface LeaderboardEntry {
   id: string;

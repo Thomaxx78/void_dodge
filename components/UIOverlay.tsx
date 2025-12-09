@@ -11,9 +11,10 @@ interface UIOverlayProps {
   startGame: () => void;
   resetGame: () => void;
   backToMenu: () => void;
+  onMultiplayerClick?: () => void;
 }
 
-const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, startGame, resetGame, backToMenu }) => {
+const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, startGame, resetGame, backToMenu, onMultiplayerClick }) => {
   const [commentary, setCommentary] = useState<string>("");
   const [loadingCommentary, setLoadingCommentary] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -106,9 +107,18 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
                 onClick={startGame}
                 className="w-full group relative px-8 py-3 bg-transparent border-2 border-white text-white font-bold uppercase tracking-widest overflow-hidden hover:bg-white hover:text-black transition-all duration-300"
               >
-                <span className="relative z-10">Initialize Sequence</span>
+                <span className="relative z-10">Solo Game</span>
                 <div className="absolute inset-0 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
               </button>
+              {onMultiplayerClick && (
+                <button
+                  onClick={onMultiplayerClick}
+                  className="w-full group relative px-8 py-3 bg-transparent border-2 border-purple-400 text-purple-400 font-bold uppercase tracking-widest overflow-hidden hover:bg-purple-400 hover:text-black transition-all duration-300"
+                >
+                  <span className="relative z-10">Multiplayer</span>
+                  <div className="absolute inset-0 bg-purple-400 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
+                </button>
+              )}
               <button
                 onClick={handleViewLeaderboard}
                 className="w-full group relative px-8 py-3 bg-transparent border-2 border-cyan-400 text-cyan-400 font-bold uppercase tracking-widest overflow-hidden hover:bg-cyan-400 hover:text-black transition-all duration-300"
