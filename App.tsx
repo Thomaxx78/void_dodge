@@ -31,7 +31,30 @@ const App: React.FC = () => {
     // Connect to multiplayer server
     multiplayerService.connect();
 
+    // Listen for room updates to keep players list in sync
+    const handleRoomUpdated = (room: MultiplayerRoom) => {
+      setMultiplayerRoom(room);
+      setMultiplayerPlayers(room.players);
+    };
+
+    const handlePlayerJoined = (data: any) => {
+      setMultiplayerRoom(data.room);
+      setMultiplayerPlayers(data.room.players);
+    };
+
+    const handlePlayerLeft = (data: any) => {
+      setMultiplayerRoom(data.room);
+      setMultiplayerPlayers(data.room.players);
+    };
+
+    multiplayerService.onRoomUpdated(handleRoomUpdated);
+    multiplayerService.onPlayerJoined(handlePlayerJoined);
+    multiplayerService.onPlayerLeft(handlePlayerLeft);
+
     return () => {
+      multiplayerService.offRoomUpdated(handleRoomUpdated);
+      multiplayerService.offPlayerJoined(handlePlayerJoined);
+      multiplayerService.offPlayerLeft(handlePlayerLeft);
       multiplayerService.disconnect();
     };
   }, []);

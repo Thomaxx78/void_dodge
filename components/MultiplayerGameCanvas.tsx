@@ -34,13 +34,32 @@ const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
   const particlesRef = useRef<Particle[]>([]);
   const currentPlayer = multiplayerService.getCurrentPlayer();
 
-  // Initialize players
+  // Initialize and update players when initialPlayers changes
   useEffect(() => {
-    const playerMap = new Map<string, MultiplayerPlayer>();
-    initialPlayers.forEach(p => {
-      playerMap.set(p.id, p);
+    // Update the map with all players from initialPlayers
+    initialPlayers.forEach(player => {
+      const existing = playersRef.current.get(player.id);
+      if (existing) {
+        // Update existing player but keep their current position if they're alive
+        existing.name = player.name;
+        existing.color = player.color;
+        existing.ready = player.ready;
+        if (!existing.alive) {
+          existing.alive = player.alive;
+        }
+      } else {
+        // Add new player
+        playersRef.current.set(player.id, { ...player });
+      }
     });
-    playersRef.current = playerMap;
+
+    // Remove players that are no longer in initialPlayers
+    const currentIds = new Set(initialPlayers.map(p => p.id));
+    Array.from(playersRef.current.keys()).forEach(id => {
+      if (!currentIds.has(id)) {
+        playersRef.current.delete(id);
+      }
+    });
   }, [initialPlayers]);
 
   // Input listeners
@@ -60,9 +79,25 @@ const MultiplayerGameCanvas: React.FC<MultiplayerGameCanvasProps> = ({
   // Multiplayer event listeners
   useEffect(() => {
     const handlePlayerMoved = (data: PlayerMovedEvent) => {
-      const player = playersRef.current.get(data.playerId);
-      if (player && data.playerId !== currentPlayer?.id) {
-        // Only update position for OTHER players
+      // Don't update our own position from network events
+      if (data.playerId === currentPlayer?.id) return;
+
+      let player = playersRef.current.get(data.playerId);
+
+      // If player doesn't exist in our map, it's a new player - add them
+      if (!player) {
+        const newPlayer: MultiplayerPlayer = {
+          id: data.playerId,
+          socketId: data.playerId,
+          name: 'Player',
+          color: '#ffffff',
+          ready: true,
+          alive: true,
+          position: data.position
+        };
+        playersRef.current.set(data.playerId, newPlayer);
+      } else {
+        // Update existing player position
         player.position = data.position;
       }
     };
