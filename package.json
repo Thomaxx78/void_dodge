@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "server": "tsx server/index.ts",
     "multiplayer": "tsx server/multiplayer.ts",
+    "multiplayer:prod": "node --loader ts-node/esm server/multiplayer.ts",
     "start": "npm run server & npm run multiplayer & npm run dev"
   },
   "dependencies": {
@@ -18,7 +19,8 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

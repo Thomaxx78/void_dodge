@@ -40,12 +40,15 @@
 - Commentaires IA générés par Gemini après chaque partie
 - Arène de jeu fixe (1000×600) pour un gameplay équitable
 
-#### Mode Multijoueur
-- Créez ou rejoignez une salle avec un code
-- Jusqu'à plusieurs joueurs simultanés
-- Synchronisation en temps réel via WebSocket
-- Voyez les autres joueurs en direct
-- Le dernier survivant gagne !
+#### Mode Multijoueur 🆕
+- Créez ou rejoignez une salle avec un code unique (6 caractères)
+- Jusqu'à **5 joueurs** simultanés par room
+- Chaque joueur a une **couleur unique** parmi 5 couleurs vives
+- Synchronisation en temps réel via **WebSocket** (Socket.IO)
+- Voyez les autres joueurs bouger en direct
+- **Le dernier survivant gagne !**
+- Système de lobby avec statut "Ready"
+- L'hôte lance la partie quand tout le monde est prêt
 
 ### 🏆 Système de Progression
 
@@ -82,7 +85,7 @@ Intégration de **Gemini 2.5 Flash** pour générer des commentaires post-game p
 - **Node.js** (v18 ou supérieur)
 - **npm** ou **yarn**
 
-### Installation
+### Installation en Local
 
 ```bash
 # 1. Cloner le repository
@@ -94,11 +97,13 @@ npm install
 
 # 3. Configurer l'API Gemini
 # Créer un fichier .env.local à la racine du projet
-echo "GEMINI_API_KEY=votre_clé_api_ici" > .env.local
+echo "VITE_GEMINI_API_KEY=votre_clé_api_ici" > .env.local
 
 # 4. Lancer le jeu complet (frontend + serveurs)
 npm start
 ```
+
+Le jeu sera accessible sur **http://localhost:3001**
 
 ### Commandes Disponibles
 
@@ -109,6 +114,20 @@ npm start
 | `npm run multiplayer` | Lance le serveur multijoueur Socket.io |
 | `npm start` | Lance tout simultanément |
 | `npm run build` | Compile le projet pour production |
+
+### 🌐 Déploiement en Production
+
+Pour mettre le jeu en ligne avec le mode multiplayer fonctionnel :
+
+**📖 Consultez le guide complet : [DEPLOYMENT-MULTIPLAYER.md](DEPLOYMENT-MULTIPLAYER.md)**
+
+Résumé rapide :
+1. **Frontend** → Vercel (gratuit, déjà configuré)
+2. **Serveur Multiplayer** → Render.com ou Railway.app (gratuit)
+3. Configurez `VITE_MULTIPLAYER_URL` sur Vercel
+4. Configurez `FRONTEND_URL` sur votre serveur multiplayer
+
+Le mode solo fonctionne directement sur Vercel sans configuration supplémentaire.
 
 ---
 

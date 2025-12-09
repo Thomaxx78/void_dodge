@@ -21,8 +21,11 @@ class MultiplayerService {
   connect() {
     if (this.socket?.connected) return;
 
-    this.socket = io('http://localhost:3002', {
-      transports: ['websocket'],
+    // Use production URL if available, otherwise localhost
+    const MULTIPLAYER_URL = import.meta.env.VITE_MULTIPLAYER_URL || 'http://localhost:3002';
+
+    this.socket = io(MULTIPLAYER_URL, {
+      transports: ['websocket', 'polling'],
       autoConnect: true
     });
 

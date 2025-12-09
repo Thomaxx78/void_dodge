@@ -9,12 +9,15 @@ app.use(cors());
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
-    methods: ['GET', 'POST']
+    origin: process.env.NODE_ENV === 'production'
+      ? [process.env.FRONTEND_URL || 'https://dodge.vercel.app']
+      : ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000'],
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 
 // Light colors for players
 const PLAYER_COLORS = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#ffa07a', '#98d8c8'];
