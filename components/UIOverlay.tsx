@@ -61,10 +61,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
 
   const handleCloseLeaderboard = () => {
     setShowLeaderboard(false);
-    backToMenu();
+    // Use setTimeout to ensure UI updates before changing game state
+    setTimeout(() => {
+      backToMenu();
+    }, 0);
   };
 
   return (
+    <>
     <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-8">
       {/* Top HUD */}
       <div className="flex justify-between items-start w-full">
@@ -219,15 +223,16 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
          <span>System: React v18 // Engine: Tailwind</span>
          <span>Ai_Mod: Gemini-2.5-Flash</span>
       </div>
-
-      {/* Leaderboard Modal */}
-      {showLeaderboard && (
-        <Leaderboard
-          onClose={handleCloseLeaderboard}
-          currentScore={submittedScore}
-        />
-      )}
     </div>
+
+    {/* Leaderboard Modal - Outside pointer-events-none div */}
+    {showLeaderboard && (
+      <Leaderboard
+        onClose={handleCloseLeaderboard}
+        currentScore={submittedScore}
+      />
+    )}
+    </>
   );
 };
 
