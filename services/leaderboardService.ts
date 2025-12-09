@@ -12,6 +12,7 @@ export interface SubmitScoreResponse {
   success: boolean;
   rank: number;
   entry: LeaderboardEntry;
+  message?: string;
 }
 
 export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {

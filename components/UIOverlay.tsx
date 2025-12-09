@@ -10,20 +10,23 @@ interface UIOverlayProps {
   highScore: number;
   startGame: () => void;
   resetGame: () => void;
+  backToMenu: () => void;
 }
 
-const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, startGame, resetGame }) => {
+const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, startGame, resetGame, backToMenu }) => {
   const [commentary, setCommentary] = useState<string>("");
   const [loadingCommentary, setLoadingCommentary] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [submittedScore, setSubmittedScore] = useState<number | undefined>();
+  const [submitMessage, setSubmitMessage] = useState<string>("");
 
   useEffect(() => {
     if (gameState === GameState.GAME_OVER) {
       setLoadingCommentary(true);
       setScoreSubmitted(false);
+      setSubmitMessage("");
       // Rough estimate of time survived based on score (since logic was +1 per frame approx 60fps)
       const timeSurvived = score / 60;
       generateGameCommentary(score, timeSurvived)
@@ -32,6 +35,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
     } else {
       setCommentary("");
       setPlayerName("");
+      setSubmitMessage("");
     }
   }, [gameState, score]);
 
@@ -42,6 +46,12 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
     if (result) {
       setScoreSubmitted(true);
       setSubmittedScore(score);
+
+      if (result.message === 'Score not improved') {
+        setSubmitMessage(`Your best score remains ${result.entry.score}`);
+      } else {
+        setSubmitMessage('New high score!');
+      }
     }
   };
 
@@ -51,6 +61,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
 
   const handleCloseLeaderboard = () => {
     setShowLeaderboard(false);
+    backToMenu();
   };
 
   return (
@@ -169,9 +180,17 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ gameState, score, highScore, star
                 </button>
               </div>
             ) : (
-              <div className="mb-6 py-4 border border-cyan-500/50 bg-cyan-500/10">
-                <p className="text-cyan-400 font-bold uppercase tracking-widest text-sm">
-                  ✓ Score Submitted!
+              <div className={`mb-6 py-4 border ${
+                submitMessage.includes('remains')
+                  ? 'border-orange-500/50 bg-orange-500/10'
+                  : 'border-cyan-500/50 bg-cyan-500/10'
+              }`}>
+                <p className={`font-bold uppercase tracking-widest text-sm ${
+                  submitMessage.includes('remains')
+                    ? 'text-orange-400'
+                    : 'text-cyan-400'
+                }`}>
+                  {submitMessage.includes('remains') ? '⚠' : '✓'} {submitMessage}
                 </p>
               </div>
             )}

@@ -12,6 +12,10 @@ const PLAYER_SPEED = 6;
 const SPAWN_RATE_INITIAL = 60; // Frames
 const ENEMY_SPEED_BASE = 3;
 
+// Fixed game arena size for fair gameplay
+const GAME_WIDTH = 1000;
+const GAME_HEIGHT = 600;
+
 const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onGameOver, setScore }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(0);
@@ -53,9 +57,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onGameOver, setScore
   // Initialize Game
   const initGame = useCallback(() => {
     if (!canvasRef.current) return;
-    const { width, height } = canvasRef.current;
-    
-    playerRef.current.pos = { x: width / 2, y: height / 2 };
+
+    playerRef.current.pos = { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 };
     playerRef.current.vel = { x: 0, y: 0 };
     enemiesRef.current = [];
     particlesRef.current = [];
@@ -96,9 +99,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onGameOver, setScore
     player.pos.x += dx;
     player.pos.y += dy;
 
-    // Boundary check
-    player.pos.x = Math.max(player.size, Math.min(canvas.width - player.size, player.pos.x));
-    player.pos.y = Math.max(player.size, Math.min(canvas.height - player.size, player.pos.y));
+    // Boundary check (use fixed game dimensions)
+    player.pos.x = Math.max(player.size, Math.min(GAME_WIDTH - player.size, player.pos.x));
+    player.pos.y = Math.max(player.size, Math.min(GAME_HEIGHT - player.size, player.pos.y));
 
     // --- Spawn Enemies ---
     // Difficulty curve logic:
@@ -137,12 +140,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onGameOver, setScore
         const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
         let x = 0, y = 0, vx = 0, vy = 0;
 
-        // Spawn on edge
+        // Spawn on edge (use fixed game dimensions)
         switch(side) {
-          case 0: x = Math.random() * canvas.width; y = -size; break;
-          case 1: x = canvas.width + size; y = Math.random() * canvas.height; break;
-          case 2: x = Math.random() * canvas.width; y = canvas.height + size; break;
-          case 3: x = -size; y = Math.random() * canvas.height; break;
+          case 0: x = Math.random() * GAME_WIDTH; y = -size; break;
+          case 1: x = GAME_WIDTH + size; y = Math.random() * GAME_HEIGHT; break;
+          case 2: x = Math.random() * GAME_WIDTH; y = GAME_HEIGHT + size; break;
+          case 3: x = -size; y = Math.random() * GAME_HEIGHT; break;
         }
 
         // Target slightly offset from player to create chaos, not perfect homing
@@ -169,13 +172,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onGameOver, setScore
       enemy.pos.x += enemy.vel.x;
       enemy.pos.y += enemy.vel.y;
 
-      // Remove off-screen enemies (with margin)
+      // Remove off-screen enemies (with margin, use fixed game dimensions)
       const margin = 100;
       if (
-        enemy.pos.x < -margin || 
-        enemy.pos.x > canvas.width + margin || 
-        enemy.pos.y < -margin || 
-        enemy.pos.y > canvas.height + margin
+        enemy.pos.x < -margin ||
+        enemy.pos.x > GAME_WIDTH + margin ||
+        enemy.pos.y < -margin ||
+        enemy.pos.y > GAME_HEIGHT + margin
       ) {
         enemiesRef.current.splice(i, 1);
         continue;
@@ -202,7 +205,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onGameOver, setScore
     if (frameCountRef.current % 5 === 0) {
       particlesRef.current.push({
         id: `p-${frameCountRef.current}`,
-        pos: { x: Math.random() * canvas.width, y: Math.random() * canvas.height },
+        pos: { x: Math.random() * GAME_WIDTH, y: Math.random() * GAME_HEIGHT },
         vel: { x: (Math.random() - 0.5) * 20, y: (Math.random() - 0.5) * 20 }, // Fast random motion
         size: Math.random() * 2,
         color: 'rgba(255, 255, 255, 0.1)',
@@ -230,25 +233,47 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onGameOver, setScore
     if (!canvasRef.current) return;
     const { width, height } = canvasRef.current;
 
-    // Clear background
+    // Calculate offsets to center the game area
+    const offsetX = (width - GAME_WIDTH) / 2;
+    const offsetY = (height - GAME_HEIGHT) / 2;
+
+    // Clear full canvas background
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, width, height);
 
-    // Grid effect (faint) to show motion
+    // Save context state
+    ctx.save();
+
+    // Translate to game area
+    ctx.translate(offsetX, offsetY);
+
+    // Draw game area background
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Draw game area border
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#00ffff';
+    ctx.strokeRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    ctx.shadowBlur = 0;
+
+    // Grid effect (faint) to show motion (use fixed game dimensions)
     ctx.strokeStyle = 'rgba(20, 20, 20, 1)';
     ctx.lineWidth = 1;
     const gridSize = 50;
-    const offset = (frameCountRef.current * 2) % gridSize;
-    
+    const gridOffset = (frameCountRef.current * 2) % gridSize;
+
     ctx.beginPath();
     // Moving grid
-    for (let x = 0; x <= width; x += gridSize) {
+    for (let x = 0; x <= GAME_WIDTH; x += gridSize) {
       ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
+      ctx.lineTo(x, GAME_HEIGHT);
     }
-    for (let y = offset; y <= height; y += gridSize) {
+    for (let y = gridOffset; y <= GAME_HEIGHT; y += gridSize) {
       ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
+      ctx.lineTo(GAME_WIDTH, y);
     }
     ctx.stroke();
 
@@ -291,6 +316,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, onGameOver, setScore
 
     // Reset shadow
     ctx.shadowBlur = 0;
+
+    // Restore context
+    ctx.restore();
+
+    // Draw game dimensions info (outside game area)
+    ctx.fillStyle = '#00ffff';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Arena: ${GAME_WIDTH}x${GAME_HEIGHT}`, width / 2, offsetY - 10);
   };
 
   // Resize handler

@@ -55,26 +55,64 @@ export default async function handler(
         return res.status(400).json({ error: 'Name is required' });
       }
 
-      const newEntry: LeaderboardEntry = {
-        id: Date.now().toString() + Math.random().toString(36).substring(2),
-        name: sanitizedName,
-        score: Math.floor(score),
-        timestamp: Date.now()
-      };
+      // Normalize name for comparison (case-insensitive)
+      const normalizedName = sanitizedName.toLowerCase();
+      const newScore = Math.floor(score);
 
-      leaderboard.push(newEntry);
+      // Check if player already exists
+      const existingPlayerIndex = leaderboard.findIndex(
+        entry => entry.name.toLowerCase() === normalizedName
+      );
 
-      // Keep only top 100 scores
+      if (existingPlayerIndex !== -1) {
+        const existingScore = leaderboard[existingPlayerIndex].score;
+
+        // Only update if new score is better
+        if (newScore > existingScore) {
+          leaderboard[existingPlayerIndex] = {
+            ...leaderboard[existingPlayerIndex],
+            score: newScore,
+            timestamp: Date.now()
+          };
+        } else {
+          // Score is not better, return existing entry
+          return res.status(200).json({
+            success: true,
+            rank: leaderboard
+              .sort((a, b) => b.score - a.score)
+              .findIndex(entry => entry.name.toLowerCase() === normalizedName) + 1,
+            entry: leaderboard[existingPlayerIndex],
+            message: 'Score not improved'
+          });
+        }
+      } else {
+        // New player, add to leaderboard
+        const newEntry: LeaderboardEntry = {
+          id: Date.now().toString() + Math.random().toString(36).substring(2),
+          name: sanitizedName,
+          score: newScore,
+          timestamp: Date.now()
+        };
+        leaderboard.push(newEntry);
+      }
+
+      // Sort and keep only top 100 scores
       leaderboard = leaderboard
         .sort((a, b) => b.score - a.score)
         .slice(0, 100);
 
-      const rank = leaderboard.findIndex(entry => entry.id === newEntry.id) + 1;
+      const rank = leaderboard.findIndex(
+        entry => entry.name.toLowerCase() === normalizedName
+      ) + 1;
+
+      const playerEntry = leaderboard.find(
+        entry => entry.name.toLowerCase() === normalizedName
+      );
 
       return res.status(200).json({
         success: true,
         rank,
-        entry: newEntry
+        entry: playerEntry
       });
     } catch (error) {
       console.error('Error submitting score:', error);

@@ -57,16 +57,49 @@ app.post('/api/leaderboard', (req, res) => {
     }
 
     const data = fs.readFileSync(DATA_FILE, 'utf-8');
-    const leaderboard: LeaderboardEntry[] = JSON.parse(data);
+    let leaderboard: LeaderboardEntry[] = JSON.parse(data);
 
-    const newEntry: LeaderboardEntry = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2),
-      name: sanitizedName,
-      score: Math.floor(score),
-      timestamp: Date.now()
-    };
+    // Normalize name for comparison (case-insensitive)
+    const normalizedName = sanitizedName.toLowerCase();
+    const newScore = Math.floor(score);
 
-    leaderboard.push(newEntry);
+    // Check if player already exists
+    const existingPlayerIndex = leaderboard.findIndex(
+      entry => entry.name.toLowerCase() === normalizedName
+    );
+
+    if (existingPlayerIndex !== -1) {
+      const existingScore = leaderboard[existingPlayerIndex].score;
+
+      // Only update if new score is better
+      if (newScore > existingScore) {
+        leaderboard[existingPlayerIndex] = {
+          ...leaderboard[existingPlayerIndex],
+          score: newScore,
+          timestamp: Date.now()
+        };
+      } else {
+        // Score is not better, return existing entry
+        const topScores = leaderboard.sort((a, b) => b.score - a.score);
+        const rank = topScores.findIndex(entry => entry.name.toLowerCase() === normalizedName) + 1;
+
+        return res.json({
+          success: true,
+          rank,
+          entry: leaderboard[existingPlayerIndex],
+          message: 'Score not improved'
+        });
+      }
+    } else {
+      // New player, add to leaderboard
+      const newEntry: LeaderboardEntry = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2),
+        name: sanitizedName,
+        score: newScore,
+        timestamp: Date.now()
+      };
+      leaderboard.push(newEntry);
+    }
 
     // Keep only top 100 scores to prevent file from growing too large
     const topScores = leaderboard
@@ -76,12 +109,18 @@ app.post('/api/leaderboard', (req, res) => {
     fs.writeFileSync(DATA_FILE, JSON.stringify(topScores, null, 2));
 
     // Return the rank of the submitted score
-    const rank = topScores.findIndex(entry => entry.id === newEntry.id) + 1;
+    const rank = topScores.findIndex(
+      entry => entry.name.toLowerCase() === normalizedName
+    ) + 1;
+
+    const playerEntry = topScores.find(
+      entry => entry.name.toLowerCase() === normalizedName
+    );
 
     res.json({
       success: true,
       rank,
-      entry: newEntry
+      entry: playerEntry
     });
   } catch (error) {
     console.error('Error submitting score:', error);

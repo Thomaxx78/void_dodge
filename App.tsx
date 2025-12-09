@@ -38,19 +38,25 @@ const App: React.FC = () => {
     setGameState(GameState.PLAYING);
   }, []);
 
+  const handleBackToMenu = useCallback(() => {
+    setScore(0);
+    setGameState(GameState.MENU);
+  }, []);
+
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden select-none">
-      <GameCanvas 
-        gameState={gameState} 
+      <GameCanvas
+        gameState={gameState}
         onGameOver={handleGameOver}
         setScore={setScore}
       />
-      <UIOverlay 
-        gameState={gameState} 
+      <UIOverlay
+        gameState={gameState}
         score={score}
         highScore={highScore}
         startGame={handleStartGame}
         resetGame={handleResetGame}
+        backToMenu={handleBackToMenu}
       />
     </div>
   );
